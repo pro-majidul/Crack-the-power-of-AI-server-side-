@@ -44,7 +44,7 @@ app.get("/rumor-detector", async (req, res) => {
 app.get("/strem-text", async (req, res) => {
   const prompt = req.query?.prompt;
   if (!prompt) {
-    res.send({ message: "Please provide a prompt in query" });
+   return res.send({ message: "Please provide a prompt in query" });
   }
   const result = await model.generateContentStream(prompt);
 
@@ -60,7 +60,7 @@ app.get("/strem-text", async (req, res) => {
 app.get("/chatbot-strem", async (req, res) => {
   const prompt = req.query?.prompt;
   if (!prompt) {
-    res.send({ message: "Please provide a Prompt text here" });
+   return res.send({ message: "Please provide a Prompt text here" });
   }
 
   const chat = model.startChat({
@@ -83,43 +83,63 @@ app.get("/chatbot-strem", async (req, res) => {
   res.end();
 });
 
+// daynamic vabe user er search history information chat gpt save kore rakhbe jevabe
 
-
-// daynamic vabe user er search history information chat gpt save kore rakhbe jevabe 
-
-app.get('/daynamic-history', async(req,res)=>{
+app.get("/daynamic-history", async (req, res) => {
   const prompt = req.query?.prompt;
-  if(!prompt){
-    res.send({message : 'Please Provide a Valide Prompt '})
+  if (!prompt) {
+   return res.send({ message: "Please Provide a Valide Prompt " });
   }
 
-  if(!global.chatHistory){
-    global.chatHistory=[
-      {role : 'user', parts :[{ text : 'hello'}]},
-      {role : 'model' , parts:[{text : 'Great to meet you. What would you like to know?'}]}
-    ]
+  if (!global.chatHistory) {
+    global.chatHistory = [
+      { role: "user", parts: [{ text: "hello" }] },
+      {
+        role: "model",
+        parts: [{ text: "Great to meet you. What would you like to know?" }],
+      },
+    ];
   }
 
-  global.chatHistory.push({role : 'user' , parts: [{text : prompt}]})
+  global.chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
-  const chat= model.startChat({
-    history : global.chatHistory
-  })
+  const chat = model.startChat({
+    history: global.chatHistory,
+  });
 
-  const result = await chat.sendMessageStream(prompt)
-  let fullResponse = '';
-  for await (const chunk of result.stream){
-    const chunkText = chunk.text() + '';
+  const result = await chat.sendMessageStream(prompt);
+  let fullResponse = "";
+  for await (const chunk of result.stream) {
+    const chunkText = chunk.text() + "";
     fullResponse += chunkText;
-    res.write(chunkText)
+    res.write(chunkText);
   }
-  res.end()
-  global.chatHistory.push({role : 'model' , parts: [{text : fullResponse.trim() }]})
-})
+  res.end();
+  global.chatHistory.push({
+    role: "model",
+    parts: [{ text: fullResponse.trim() }],
+  });
+});
 
+// daynamic vabe json data create korar jonne
+app.get("/genarate-json", async (req, res) => {
+  const prompt = req.query?.prompt;
+  if (!prompt) {
+   return res.send({ message: "Please provide a Prompt text here" });
+  }
 
+  const finalPrompt = `Generate a JSON array following this schema:
+  [
+    { "key": "value" }
+  ]
+  Now, list a few ${prompt} using this JSON format. Return only valid JSON without extra text.`;
 
-
+  const result = await model.generateContent(finalPrompt);
+  const output = result.response.text().trim();
+  const finalOutput = JSON.parse(output.slice(7,-4)
+)
+  res.send(finalOutput);
+});
 
 app.get("/", (req, res) => {
   res.send({ mess: "crack the power of AI is running" });
