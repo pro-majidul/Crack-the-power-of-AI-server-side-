@@ -3,6 +3,7 @@ const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { default: axios } = require("axios");
 
 const genAI = new GoogleGenerativeAI(process.env.Gemini_Api_Key);
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -44,7 +45,7 @@ app.get("/rumor-detector", async (req, res) => {
 app.get("/strem-text", async (req, res) => {
   const prompt = req.query?.prompt;
   if (!prompt) {
-   return res.send({ message: "Please provide a prompt in query" });
+    return res.send({ message: "Please provide a prompt in query" });
   }
   const result = await model.generateContentStream(prompt);
 
@@ -60,7 +61,7 @@ app.get("/strem-text", async (req, res) => {
 app.get("/chatbot-strem", async (req, res) => {
   const prompt = req.query?.prompt;
   if (!prompt) {
-   return res.send({ message: "Please provide a Prompt text here" });
+    return res.send({ message: "Please provide a Prompt text here" });
   }
 
   const chat = model.startChat({
@@ -88,7 +89,7 @@ app.get("/chatbot-strem", async (req, res) => {
 app.get("/daynamic-history", async (req, res) => {
   const prompt = req.query?.prompt;
   if (!prompt) {
-   return res.send({ message: "Please Provide a Valide Prompt " });
+    return res.send({ message: "Please Provide a Valide Prompt " });
   }
 
   if (!global.chatHistory) {
@@ -125,7 +126,7 @@ app.get("/daynamic-history", async (req, res) => {
 app.get("/genarate-json", async (req, res) => {
   const prompt = req.query?.prompt;
   if (!prompt) {
-   return res.send({ message: "Please provide a Prompt text here" });
+    return res.send({ message: "Please provide a Prompt text here" });
   }
 
   const finalPrompt = `Generate a JSON array following this schema:
@@ -136,9 +137,29 @@ app.get("/genarate-json", async (req, res) => {
 
   const result = await model.generateContent(finalPrompt);
   const output = result.response.text().trim();
-  const finalOutput = JSON.parse(output.slice(7,-4)
-)
+  const finalOutput = JSON.parse(output.slice(7, -4));
   res.send(finalOutput);
+});
+
+// kono image er url ba image theke er details ber korar jonne
+app.get("/generate-details", async (req, res) => {
+  const prompt = req.query?.prompt;
+  if (!prompt) {
+    return res.send({ message: " Please provide a prompt text here" });
+  }
+  const response = await axios.get(prompt, { responseType: "arraybuffer" });
+  const responsedata = {
+    inlineData: {
+      data: Buffer.from(response.data).toString("base64"),
+      mimeType: "image/png",
+    },
+  };
+  const result = await model.generateContent([
+    "tell the details of the image ",
+    responsedata,
+  ]);
+  // console.log(result.response.text());
+  res.send(result.response.text());
 });
 
 app.get("/", (req, res) => {
